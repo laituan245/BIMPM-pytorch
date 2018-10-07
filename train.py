@@ -9,7 +9,7 @@ from tensorboardX import SummaryWriter
 from time import gmtime, strftime
 
 from model.BIMPM import BIMPM
-from model.utils import SNLI, Quora
+from model.utils import TrecQA, WikiQA
 from test import test
 
 
@@ -37,10 +37,7 @@ def train(args, data):
             print('epoch:', present_epoch + 1)
         last_epoch = present_epoch
 
-        if args.data_type == 'SNLI':
-            s1, s2 = 'premise', 'hypothesis'
-        else:
-            s1, s2 = 'q1', 'q2'
+        s1, s2 = 's1', 's2'
 
         s1, s2 = getattr(batch, s1), getattr(batch, s2)
 
@@ -105,7 +102,7 @@ def main():
     parser.add_argument('--batch-size', default=64, type=int)
     parser.add_argument('--char-dim', default=20, type=int)
     parser.add_argument('--char-hidden-size', default=50, type=int)
-    parser.add_argument('--data-type', default='SNLI', help='available: SNLI or Quora')
+    parser.add_argument('--data-type', default='TrecQA', help='available: TrecQA or WikiQA')
     parser.add_argument('--dropout', default=0.1, type=float)
     parser.add_argument('--epoch', default=10, type=int)
     parser.add_argument('--gpu', default=0, type=int)
@@ -119,14 +116,14 @@ def main():
     parser.add_argument('--word-dim', default=300, type=int)
     args = parser.parse_args()
 
-    if args.data_type == 'SNLI':
-        print('loading SNLI data...')
-        data = SNLI(args)
-    elif args.data_type == 'Quora':
-        print('loading Quora data...')
-        data = Quora(args)
+    if args.data_type == 'TrecQA':
+        print('loading TrecQA data...')
+        data = TrecQA(args)
+    elif args.data_type == 'WikiQA':
+        print('loading WikiQA data...')
+        data = WikiQA(args)
     else:
-        raise NotImplementedError('only SNLI or Quora data is possible')
+        raise NotImplementedError('only TrecQA or WikiQA data is possible')
 
     setattr(args, 'char_vocab_size', len(data.char_vocab))
     setattr(args, 'word_vocab_size', len(data.TEXT.vocab))

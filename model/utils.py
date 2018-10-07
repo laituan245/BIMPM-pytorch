@@ -4,21 +4,32 @@ from torchtext.vocab import GloVe
 
 from nltk import word_tokenize
 
-
-class SNLI():
+class TrecQA():
     def __init__(self, args):
-        self.TEXT = data.Field(batch_first=True, tokenize=word_tokenize, lower=True)
+        self.RAW = data.RawField()
+        self.TEXT = data.Field(batch_first=True)
         self.LABEL = data.Field(sequential=False, unk_token=None)
 
-        self.train, self.dev, self.test = datasets.SNLI.splits(self.TEXT, self.LABEL)
+        self.train, self.dev, self.test = data.TabularDataset.splits(
+            path='.data/trecqa',
+            train='train.tsv',
+            validation='dev.tsv',
+            test='test.tsv',
+            format='tsv',
+            fields=[('label', self.LABEL),
+                    ('s1', self.TEXT),
+                    ('s2', self.TEXT)])
 
         self.TEXT.build_vocab(self.train, self.dev, self.test, vectors=GloVe(name='840B', dim=300))
         self.LABEL.build_vocab(self.train)
 
+        sort_key = lambda x: data.interleave_keys(len(x.q1), len(x.q2))
+
         self.train_iter, self.dev_iter, self.test_iter = \
             data.BucketIterator.splits((self.train, self.dev, self.test),
                                        batch_sizes=[args.batch_size] * 3,
-                                       device=args.gpu)
+                                       device=args.gpu,
+                                       sort_key=sort_key)
 
         self.max_word_len = max([len(w) for w in self.TEXT.vocab.itos])
         # for <pad>
@@ -50,22 +61,21 @@ class SNLI():
         batch = batch.data.cpu().numpy().astype(int).tolist()
         return [[self.characterized_words[w] for w in words] for words in batch]
 
-class Quora():
+class WikiQA():
     def __init__(self, args):
         self.RAW = data.RawField()
         self.TEXT = data.Field(batch_first=True)
         self.LABEL = data.Field(sequential=False, unk_token=None)
 
         self.train, self.dev, self.test = data.TabularDataset.splits(
-            path='.data/quora',
+            path='.data/wikiqa',
             train='train.tsv',
             validation='dev.tsv',
             test='test.tsv',
             format='tsv',
             fields=[('label', self.LABEL),
-                    ('q1', self.TEXT),
-                    ('q2', self.TEXT),
-                    ('id', self.RAW)])
+                    ('s1', self.TEXT),
+                    ('s2', self.TEXT)])
 
         self.TEXT.build_vocab(self.train, self.dev, self.test, vectors=GloVe(name='840B', dim=300))
         self.LABEL.build_vocab(self.train)
